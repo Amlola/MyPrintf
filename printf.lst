@@ -1,0 +1,361 @@
+     1                                  global _MyPrintf
+     2                                  
+     3                                  SCALE equ 8
+     4                                  
+     5                                  section .text
+     6                                  
+     7                                  
+     8                                  ;               SYSTEM V
+     9                                  ;----------------------------------------
+    10                                  ; must push | return    | parameters
+    11                                  ;----------------------------------------
+    12                                  ;1) rsp     | rax       | rdi
+    13                                  ;2) rbp     |           | rsi   
+    14                                  ;3) rbx     |           | rdx
+    15                                  ;4) r12     |           | rcx
+    16                                  ;5) r13     |           | r8
+    17                                  ;6) r14     |           | r9
+    18                                  ;7) r15     |           |
+    19                                  
+    20                                  
+    21                                  _MyPrintf:
+    22 00000000 4154                        push r12
+    23 00000002 53                          push rbx
+    24                                  
+    25 00000003 55                          push rbp
+    26 00000004 4889E5                      mov rbp, rsp
+    27                                  
+    28 00000007 4151                        push r9
+    29 00000009 4150                        push r8
+    30 0000000B 51                          push rcx
+    31 0000000C 52                          push rdx
+    32 0000000D 56                          push rsi
+    33                                  
+    34 0000000E 4989E9                      mov r9, rbp         ; r9 = rbp
+    35 00000011 4983E928                    sub r9, 40          ; 5 (parameters) * 8
+    36                                  
+    37 00000015 4889FE                      mov rsi, rdi
+    38 00000018 48BF-                       mov rdi, Buffer
+    38 0000001A [0000000000000000] 
+    39                                  
+    40 00000022 4D31E4                      xor r12, r12        ; current write smbl
+    41 00000025 4D31D2                      xor r10, r10        ; BufferSize
+    42                                  
+    43                                      .cycle:
+    44 00000028 4981FA00010000                  cmp r10, BufferCapacity
+    45 0000002F 7605                            jbe .syntax_analys
+    46                                  
+    47 00000031 E872010000                      call fflush
+    48                                  
+    49                                      .syntax_analys:
+    50 00000036 AC                              lodsb
+    51 00000037 3C25                            cmp al, '%'
+    52 00000039 750B                            jne .not_specific
+    53                                  
+    54 0000003B AC                              lodsb
+    55 0000003C 3C25                            cmp al, '%'
+    56 0000003E 751D                            jne .switch
+    57                                  
+    58 00000040 AA                              stosb
+    59 00000041 49FFC2                          inc r10
+    60                                  
+    61 00000044 EBE2                            jmp .cycle
+    62                                  
+    63                                      .not_specific:
+    64 00000046 3C00                            cmp al, 0
+    65 00000048 7406                            je .print
+    66                                          
+    67 0000004A AA                              stosb
+    68 0000004B 49FFC2                          inc r10
+    69                                  
+    70 0000004E EBD8                            jmp .cycle
+    71                                  
+    72                                  ;-----------------------------------------
+    73                                      .print:
+    74 00000050 E853010000                      call fflush
+    75 00000055 4C89E0                          mov rax, r12
+    76                                  
+    77                                      .return:
+    78 00000058 C9                              leave           ; mov sp, bp
+    79                                  
+    80 00000059 415C                            pop r12  
+    81 0000005B 5B                              pop rbx
+    82                                  
+    83 0000005C C3                              ret
+    84                                  ;------------------------------------------
+    85                                      
+    86                                      .switch:
+    87 0000005D 3C62                            cmp al, 'b' 
+    88 0000005F 0F821C010000                    jb .error
+    89                                  
+    90 00000065 3C78                            cmp al, 'x'
+    91 00000067 0F8714010000                    ja .error
+    92                                  
+    93 0000006D 488B14C5[7DFDFFFF]              mov rdx, .jump_table[(rax - 'b') * SCALE]
+    94                                  
+    95 00000075 4983FC05                        cmp r12, 5
+    96 00000079 7504                            jne .specific            
+    97                                  
+    98 0000007B 4983C120                        add r9, 32         ; saved registers + rbp
+    99                                  
+   100                                      .specific:
+   101 0000007F 49FFC4                          inc r12
+   102                                  
+   103 00000082 498B19                          mov rbx, [r9]
+   104                                  
+   105 00000085 4983C108                        add r9, 8
+   106                                  
+   107 00000089 FFE2                            jmp rdx
+   108                                  
+   109 0000008B EB9B                            jmp .cycle
+   110                                  
+   111                                      .jump_table: 
+   112 0000008D [4501000000000000]              dq .binary                              ; b  ASCII - 98
+   113 00000095 [4F01000000000000]              dq .char                                ; c  ASCII - 99
+   114 0000009D [5901000000000000]              dq .decimal                             ; d  ASCII - 100
+   115 000000A5 [8101000000000000]-             times ('o' - 'd' - 1) dq .error
+   115 000000A5 <rep Ah>           
+   116 000000F5 [6301000000000000]              dq .octal                               ; o  ASCII - 111
+   117 000000FD [8101000000000000]-             times ('s' - 'o' - 1) dq .error
+   117 000000FD <rep 3h>           
+   118 00000115 [7701000000000000]              dq .string                              ; s  ASCII - 115
+   119 0000011D [8101000000000000]-             times ('x' - 's' - 1) dq .error
+   119 0000011D <rep 4h>           
+   120 0000013D [6D01000000000000]              dq .hex                                 ; x  ASCII - 120
+   121                                  
+   122                                      .binary:
+   123 00000145 E805010000                      call print_binary
+   124 0000014A E9D9FEFFFF                      jmp .cycle
+   125                                  
+   126                                      .char:
+   127 0000014F E884000000                      call print_char
+   128 00000154 E9CFFEFFFF                      jmp .cycle
+   129                                  
+   130                                      .decimal:
+   131 00000159 E839010000                      call print_decimal
+   132 0000015E E9C5FEFFFF                      jmp .cycle
+   133                                  
+   134                                      .octal:
+   135 00000163 E8FF000000                      call print_octal
+   136 00000168 E9BBFEFFFF                      jmp .cycle
+   137                                  
+   138                                      .hex:
+   139 0000016D E80D010000                      call print_hex
+   140 00000172 E9B1FEFFFF                      jmp .cycle
+   141                                  
+   142                                      .string:
+   143 00000177 E865000000                      call print_string
+   144 0000017C E9A7FEFFFF                      jmp .cycle
+   145                                      
+   146                                      .error:
+   147 00000181 B801000000                      mov  rax, 0x01       
+   148 00000186 BF01000000                      mov  rdi, 1         ; write to stdout
+   149                                  
+   150 0000018B 48BE-                           mov  rsi, ErrorMsg
+   150 0000018D [0001000000000000] 
+   151 00000195 BA19000000                      mov  rdx, ErrorMsgLen
+   152                                  
+   153 0000019A 0F05                            syscall
+   154                                  
+   155 0000019C 48C7C0FFFFFFFF                  mov rax, -1
+   156 000001A3 E9B0FEFFFF                      jmp .return
+   157                                          
+   158                                  
+   159                                  fflush:
+   160 000001A8 56                          push rsi
+   161 000001A9 52                          push rdx
+   162 000001AA 50                          push rax
+   163                                  
+   164 000001AB B801000000                  mov  rax, 0x01       
+   165 000001B0 BF01000000                  mov  rdi, 1         ; write to stdout
+   166                                  
+   167 000001B5 48BE-                       mov  rsi, Buffer
+   167 000001B7 [0000000000000000] 
+   168 000001BF 4C89D2                      mov  rdx, r10
+   169                                  
+   170 000001C2 0F05                        syscall
+   171                                  
+   172 000001C4 58                          pop  rax
+   173 000001C5 5A                          pop  rdx
+   174 000001C6 5E                          pop  rsi
+   175                                  
+   176 000001C7 48BF-                       mov  rdi, Buffer
+   176 000001C9 [0000000000000000] 
+   177 000001D1 41BA00000000                mov  r10, 0         ; BufferSize = 0 
+   178                                  
+   179 000001D7 C3                          ret
+   180                                  
+   181                                  ;-------------------------------------print_funcs-------------------------------------------
+   182                                  
+   183                                  print_char:
+   184 000001D8 881F                        mov [rdi], bl
+   185 000001DA 48FFC7                      inc  rdi
+   186 000001DD 49FFC2                      inc  r10
+   187                                  
+   188 000001E0 C3                          ret
+   189                                  
+   190                                  
+   191                                  print_string:
+   192 000001E1 4989F0                      mov r8, rsi
+   193                                  
+   194 000001E4 4889DE                      mov rsi, rbx
+   195                                  
+   196                                      .cycle:
+   197 000001E7 AC                              lodsb
+   198                                  
+   199 000001E8 3C00                            cmp al, 0
+   200 000001EA 7414                            je .return
+   201                                  
+   202 000001EC 4981FA00010000                  cmp r10, BufferCapacity
+   203 000001F3 7605                            jbe .continue
+   204                                  
+   205 000001F5 E8AEFFFFFF                      call fflush
+   206                                  
+   207                                          .continue:
+   208 000001FA AA                                  stosb
+   209 000001FB 49FFC2                              inc r10
+   210                                  
+   211 000001FE EBE7                            jmp .cycle
+   212                                  
+   213                                      .return:
+   214 00000200 4C89C6                          mov rsi, r8
+   215 00000203 C3                              ret
+   216                                  
+   217                                  
+   218                                  print_powers_of_two:
+   219 00000204 4885DB                      test rbx, rbx
+   220 00000207 7508                        jne .not_null
+   221                                  
+   222 00000209 B030                        mov al, '0'
+   223 0000020B AA                          stosb
+   224 0000020C 49FFC2                      inc r10
+   225 0000020F EB3D                        jmp .return
+   226                                  
+   227                                      .not_null:
+   228 00000211 4D31C0                          xor r8, r8 
+   229 00000214 30D2                            xor dl, dl
+   230                                  
+   231                                      .cycle:
+   232 00000216 4D39E8                          cmp r8, r13
+   233 00000219 7333                            jae .return
+   234                                  
+   235 0000021B 48D3C3                          rol rbx,  cl
+   236 0000021E 4189DE                          mov r14d, ebx
+   237 00000221 4521FE                          and r14d, r15d
+   238 00000224 49FFC0                          inc r8
+   239                                  
+   240 00000227 84D2                            test dl, dl
+   241 00000229 7507                            jne .print_smbl             ; check meaningless
+   242                                  
+   243 0000022B 4585F6                          test r14d, r14d          
+   244 0000022E 74E6                            je .cycle
+   245                                  
+   246 00000230 FEC2                            inc dl
+   247                                      
+   248                                      .print_smbl:
+   249 00000232 67418A86[29010000]              mov al, HexAlphabit[r14d]
+   250                                  
+   251 0000023A 4981FA00010000                  cmp r10, BufferCapacity
+   252 00000241 7605                            jbe .print
+   253                                  
+   254 00000243 E860FFFFFF                      call fflush
+   255                                  
+   256                                          .print:
+   257 00000248 AA                                  stosb
+   258 00000249 49FFC2                              inc r10
+   259 0000024C EBC8                                jmp .cycle
+   260                                      
+   261                                      .return:
+   262 0000024E C3                              ret
+   263                                  
+   264                                  
+   265                                  print_binary:
+   266 0000024F B101                        mov cl, 1       ; rol                    
+   267 00000251 41BF01000000                mov r15d, 01h   ; bit mask  
+   268 00000257 41BD20000000                mov r13, 32                 
+   269 0000025D 48C1E320                    shl rbx, 32
+   270 00000261 E89EFFFFFF                  call print_powers_of_two
+   271 00000266 C3                          ret
+   272                                  
+   273                                  
+   274                                  print_octal:
+   275 00000267 B103                        mov cl, 3       ; rol
+   276 00000269 41BF07000000                mov r15d, 07h   ; bit mask
+   277 0000026F 41BD0B000000                mov r13, 11
+   278 00000275 48C1E31F                    shl rbx, 31
+   279 00000279 E886FFFFFF                  call print_powers_of_two
+   280 0000027E C3                          ret
+   281                                  
+   282                                  
+   283                                  print_hex:
+   284 0000027F B104                        mov cl, 4       ; rol
+   285 00000281 41BF0F000000                mov r15d, 0Fh   ; bit mask
+   286 00000287 41BD08000000                mov r13, 8
+   287 0000028D 48C1E320                    shl rbx, 32
+   288 00000291 E86EFFFFFF                  call print_powers_of_two
+   289 00000296 C3                          ret
+   290                                  
+   291                                  
+   292                                  print_decimal:
+   293 00000297 41B80A000000                mov r8, 10
+   294 0000029D 4D31F6                      xor r14, r14
+   295                                  
+   296 000002A0 85DB                        test ebx, ebx
+   297 000002A2 7908                        jns .cycle          ; positive
+   298                                  
+   299 000002A4 B02D                        mov al, '-'
+   300 000002A6 AA                          stosb
+   301 000002A7 49FFC2                      inc r10
+   302                                  
+   303 000002AA F7DB                        neg ebx
+   304                                  
+   305                                      .cycle:
+   306 000002AC 4831D2                          xor rdx, rdx
+   307                                  
+   308 000002AF 89D8                            mov eax, ebx    ; ax = N
+   309 000002B1 49F7F0                          div r8          ; ax = N / 10
+   310                                  
+   311 000002B4 89C3                            mov ebx, eax    ; saving next integer
+   312                                  
+   313 000002B6 89D0                            mov eax, edx    ; ax = N % 10
+   314                                  
+   315 000002B8 0430                            add al, '0'
+   316                                  
+   317 000002BA 418886[19010000]                mov DecBuffer[r14], al
+   318 000002C1 49FFC6                          inc r14
+   319                                  
+   320 000002C4 83FB00                          cmp ebx, 0h
+   321 000002C7 75E3                            jne .cycle
+   322                                      
+   323 000002C9 4D01F2                      add r10, r14
+   324 000002CC 4981FA00010000              cmp r10, BufferCapacity
+   325 000002D3 7608                        jbe .not_fflush
+   326                                  
+   327 000002D5 E8CEFEFFFF                  call fflush
+   328 000002DA 4D01F2                      add r10, r14
+   329                                  
+   330                                      .not_fflush:
+   331 000002DD 49FFCE                          dec r14
+   332 000002E0 418A86[19010000]                mov al, DecBuffer[r14]
+   333 000002E7 AA                              stosb
+   334 000002E8 4D85F6                          test r14, r14
+   335 000002EB 77F0                            ja .not_fflush
+   336                                  
+   337 000002ED C3                          ret
+   338                                  
+   339                                  
+   340                                  section .data
+   341                                  
+   342                                  BufferCapacity equ 256
+   343 00000000 00<rep 100h>            Buffer:        times BufferCapacity db 0
+   344                                  
+   345 00000100 556E6B6E6F776E2073-     ErrorMsg:      db "Unknown specifier format", 0x0a
+   345 00000109 706563696669657220-
+   345 00000112 666F726D61740A     
+   346                                  ErrorMsgLen    equ $ - ErrorMsg
+   347                                  
+   348                                  DecBufferCap equ 16
+   349 00000119 00<rep 10h>             DecBuffer:   times DecBufferCap db 0
+   350                                  
+   351 00000129 303132333435363738-     HexAlphabit:   db "0123456789abcdef"
+   351 00000132 39616263646566     
