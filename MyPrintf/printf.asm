@@ -155,7 +155,13 @@ _MyPrintf:
         mov rax, -1
         jmp .return
         
-
+;------------------------------------------
+; Clear Buffer
+; Enter: r10 - BufferSize
+;        rdi - current cell Buffer      
+;
+; Destr: r10, rdi
+;------------------------------------------
 fflush:
     push rsi
     push rdx
@@ -180,6 +186,13 @@ fflush:
 
 ;-------------------------------------print_funcs-------------------------------------------
 
+;------------------------------------------
+; Enter: bl - symbol
+;        r10 - BufferSize      
+;        rdi - current cell Buffer
+;
+; Destr: r10, rdi
+;------------------------------------------
 print_char:
     mov [rdi], bl
     inc  rdi
@@ -188,6 +201,13 @@ print_char:
     ret
 
 
+;------------------------------------------
+; Enter: rbx - string
+;        r10 - BufferSize      
+;        rdi - current cell Buffer
+;
+; Destr: r10, rdi
+;------------------------------------------
 print_string:
     mov r8, rsi
 
@@ -215,6 +235,16 @@ print_string:
         ret
 
 
+;------------------------------------------
+; Enter: rbx - number
+;        r10 - BufferSize      
+;        rdi - current cell Buffer
+;        r13 - max size of number
+;        cl  - max digit in number (rol)
+;        r15d - bit mask
+;
+; Destr: r10, rdi, r8, dl
+;------------------------------------------
 print_powers_of_two:
     test rbx, rbx
     jne .not_null
@@ -289,9 +319,16 @@ print_hex:
     ret
 
 
+;------------------------------------------
+; Enter: rbx - number
+;        r10 - BufferSize      
+;        rdi - current cell Buffer
+;
+; Destr: r10, rdi
+;------------------------------------------
 print_decimal:
     mov r8, 10
-    xor r14, r14
+    xor r14, r14        ; counter
 
     test ebx, ebx
     jns .cycle          ; positive

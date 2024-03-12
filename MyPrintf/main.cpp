@@ -12,8 +12,5 @@ int main()
     printf("%d\n%c\n%s\n%%\n%x\n%c\n%o\n"
           "%d %s %x %d%%%c\n", 123456, 'c', "string", 0xA1B2C3DE, 'f', 05555, -1, "love", 3802, 100, 33);
 
-
-    //printf(f);
-
     return 0;
     }

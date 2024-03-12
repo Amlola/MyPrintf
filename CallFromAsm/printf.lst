@@ -1,0 +1,28 @@
+     1                                  global main
+     2                                  extern printf
+     3                                  
+     4                                  section .text
+     5                                  
+     6                                  main:
+     7 00000000 4883EC08                    sub rsp, 8
+     8 00000004 48BF-                       mov rdi, Str
+     8 00000006 [0000000000000000] 
+     9 0000000E 48BE-                       mov rsi, People
+     9 00000010 [2600000000000000] 
+    10 00000018 488B1425[2C000000]          mov rdx, [Num]
+    11 00000020 B800000000                  mov rax, 0
+    12 00000025 E8(00000000)                call printf
+    13                                  
+    14 0000002A 4883C408                    add rsp, 8
+    15 0000002E C3                          ret
+    16                                  
+    17                                  
+    18                                  section .data
+    19                                  
+    20 00000000 48656C6C6F2025732C-     Str:        db "Hello %s, I fffk your mouth %d times", 0x0a, 0
+    20 00000009 2049206666666B2079-
+    20 00000012 6F7572206D6F757468-
+    20 0000001B 2025642074696D6573-
+    20 00000024 0A00               
+    21 00000026 4B6174796100            People:     db "Katya", 0
+    22 0000002C 0300000000000000        Num         dq 3

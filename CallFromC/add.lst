@@ -1,0 +1,8 @@
+     1                                  global _Sum
+     2                                  
+     3                                  section .text
+     4                                  
+     5                                  _Sum:
+     6 00000000 4889F8                      mov rax, rdi
+     7 00000003 4801F0                      add rax, rsi
+     8 00000006 C3                          ret
